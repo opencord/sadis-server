@@ -1,0 +1,14 @@
+{
+  "apps" : {
+    "org.opencord.sadis" : {
+      "sadis" : {
+        "integration" : {
+          "cache" : {
+            "maxsize" : 1000
+          },
+          "url" : "http://docker.for.mac.localhost:4245/subscriber/%s"
+        }
+      }
+    }
+  }
+}
