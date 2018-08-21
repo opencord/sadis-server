@@ -27,23 +27,24 @@ package main
   ONOS SADIS subscriber format
 */
 type sadisSubscriber struct {
-	ID string `json:"id"`
-	CTag int16 `json:"cTag"`
-	STag int16 `json:"sTag"`
+	ID        string `json:"id"`
+	CTag      int16  `json:"cTag"`
+	STag      int16  `json:"sTag"`
 	NasPortID string `json:"nasPortId"`
 	CircuitID string `json:"circuitId"`
-	RemoteID string `json:"remoteId"`
+	RemoteID  string `json:"remoteId"`
 }
 
 /*
   XOS RCORD subscriber format
 */
 type subscriber struct {
-	CTag int16 `json:"c_tag"`
-	STag int16 `json:"s_tag"`
+	CTag            int16  `json:"c_tag"`
+	STag            int16  `json:"s_tag"`
 	OnuSerialNumber string `json:"onu_device"`
-	NasPortID string `json:"nas_port_id"`
-	CircuitID string `json:"circuit_id"`
+	NasPortID       string `json:"nas_port_id"`
+	CircuitID       string `json:"circuit_id"`
+	RemoteID        string `json:"remote_id"`
 }
 
 type subscribers struct {
@@ -61,9 +62,9 @@ type subscribers struct {
   ONOS SADIS device format
 */
 type sadisDevice struct {
-	ID string `json:"id"`
+	ID         string `json:"id"`
 	HardwareID string `json:"hardwareIdentifier"`
-	Uplink int `json:"uplinkPort"`
+	Uplink     int    `json:"uplinkPort"`
 }
 
 /*
@@ -71,8 +72,8 @@ type sadisDevice struct {
 */
 type oltDevice struct {
 	Uplink string `json:"uplink"`
-	Host string `json:"host"`
-	Port int `json:"port"`
+	Host   string `json:"host"`
+	Port   int    `json:"port"`
 }
 
 type oltDevices struct {

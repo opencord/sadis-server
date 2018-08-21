@@ -14,12 +14,12 @@
 package main
 
 import (
-	"strconv"
 	"encoding/json"
 	"net/http"
+	"strconv"
+
 	"github.com/gorilla/mux"
 )
-
 
 func (c *Config) getSubscriberHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -45,12 +45,12 @@ func (c *Config) getSubscriberHandler(w http.ResponseWriter, r *http.Request) {
 		if sub.OnuSerialNumber == sadisRequestID {
 			log.Infof("Found subscriber with ID %s", sub.OnuSerialNumber)
 			sadisSubscriber := sadisSubscriber{
-				ID: sub.OnuSerialNumber,
-				CTag: sub.CTag,
-				STag: sub.STag,
+				ID:        sub.OnuSerialNumber,
+				CTag:      sub.CTag,
+				STag:      sub.STag,
 				NasPortID: sub.NasPortID,
 				CircuitID: sub.CircuitID,
-				RemoteID: sub.CircuitID, // TODO get a proper value here
+				RemoteID:  sub.RemoteID,
 			}
 
 			json, e := json.Marshal(&sadisSubscriber)
@@ -81,8 +81,8 @@ func (c *Config) getSubscriberHandler(w http.ResponseWriter, r *http.Request) {
 		if devID == sadisRequestID {
 			log.Infof("Found OLT device with ID %s", devID)
 			sadisDevice := sadisDevice{
-				ID: devID,
-				Uplink: toInt(device.Uplink),
+				ID:         devID,
+				Uplink:     toInt(device.Uplink),
 				HardwareID: "de:ad:be:ef:ba:11", // TODO do we really need to configure this?
 			}
 
