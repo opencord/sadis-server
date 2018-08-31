@@ -15,6 +15,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -76,14 +77,19 @@ func (c *Config) getSubscriberHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
+	fmt.Println(devices)
+
 	for _, device := range devices.OltDevices {
 		devID := device.Host + ":" + strconv.Itoa(device.Port)
 		if devID == sadisRequestID {
 			log.Infof("Found OLT device with ID %s", devID)
+			log.Debugf("ID: %s, Uplink: %s, IPAddress: %s, NasID: %s", devID, toInt(device.Uplink), device.Host, device.NasID)
 			sadisDevice := sadisDevice{
 				ID:         devID,
 				Uplink:     toInt(device.Uplink),
 				HardwareID: "de:ad:be:ef:ba:11", // TODO do we really need to configure this?
+				IPAddress:  device.Host,
+				NasID:      device.NasID,
 			}
 
 			json, e := json.Marshal(&sadisDevice)

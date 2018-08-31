@@ -65,6 +65,8 @@ type sadisDevice struct {
 	ID         string `json:"id"`
 	HardwareID string `json:"hardwareIdentifier"`
 	Uplink     int    `json:"uplinkPort"`
+	IPAddress  string `json:"ipAddress"`
+	NasID      string `json:"nasId"`
 }
 
 /*
@@ -74,6 +76,7 @@ type oltDevice struct {
 	Uplink string `json:"uplink"`
 	Host   string `json:"host"`
 	Port   int    `json:"port"`
+	NasID  string `json:"nas_id"`
 }
 
 type oltDevices struct {
