@@ -16,6 +16,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"strconv"
 
@@ -83,12 +84,22 @@ func (c *Config) getSubscriberHandler(w http.ResponseWriter, r *http.Request) {
 		devID := device.Host + ":" + strconv.Itoa(device.Port)
 		if devID == sadisRequestID {
 			log.Infof("Found OLT device with ID %s", devID)
-			log.Debugf("ID: %s, Uplink: %s, IPAddress: %s, NasID: %s", devID, toInt(device.Uplink), device.Host, device.NasID)
+
+			ipaddr := device.Host
+			addr, err := net.ResolveIPAddr("ip", device.Host)
+			if err != nil {
+				log.Errorf("Resolution error: %s", err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			} else {
+				ipaddr = addr.String()
+			}
+			log.Debugf("ID: %s, Uplink: %s, IPAddress: %s, NasID: %s", devID, toInt(device.Uplink), ipaddr, device.NasID)
 			sadisDevice := sadisDevice{
 				ID:         devID,
 				Uplink:     toInt(device.Uplink),
 				HardwareID: "de:ad:be:ef:ba:11", // TODO do we really need to configure this?
-				IPAddress:  device.Host,
+				IPAddress:  ipaddr,
 				NasID:      device.NasID,
 			}
 
