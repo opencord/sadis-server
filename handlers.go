@@ -15,7 +15,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net"
 	"net/http"
 	"strconv"
@@ -78,10 +77,9 @@ func (c *Config) getSubscriberHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	fmt.Println(devices)
-
 	for _, device := range devices.OltDevices {
-		devID := device.Host + ":" + strconv.Itoa(device.Port)
+		// NOTE if it's an OLT then sadisRequestID is the device serial number
+		devID := device.SerialNumber
 		if devID == sadisRequestID {
 			log.Infof("Found OLT device with ID %s", devID)
 

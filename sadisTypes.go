@@ -73,10 +73,11 @@ type sadisDevice struct {
   XOS vOLT device format
 */
 type oltDevice struct {
-	Uplink string `json:"uplink"`
-	Host   string `json:"host"`
-	Port   int    `json:"port"`
-	NasID  string `json:"nas_id"`
+	Uplink       string `json:"uplink"`
+	Host         string `json:"host"`
+	Port         int    `json:"port"`
+	NasID        string `json:"nas_id"`
+	SerialNumber string `json:"serial_number"`
 }
 
 type oltDevices struct {
