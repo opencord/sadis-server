@@ -13,14 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# docker build -t sadis-server:candidate .
+# docker build -t opencord/sadis-server:candidate .
 
-FROM golang:1.7-alpine as builder
+FROM golang:1.10-stretch as builder
 MAINTAINER Open Networking Foundation <info@opennetworking.org>
 
 WORKDIR /go
 ADD . /go/src/gerrit.opencord.org/sadis-server
-RUN go build -o /build/entry-point gerrit.opencord.org/sadis-server
+RUN CGO_ENABLED=0 GOOS=linux go build -o /build/entry-point gerrit.opencord.org/sadis-server
 
 FROM alpine:3.5
 MAINTAINER Open Networking Foundation <info@opennetworking.org>

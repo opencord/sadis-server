@@ -15,6 +15,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/sirupsen/logrus"
 	"net"
 	"net/http"
 	"strconv"
@@ -26,7 +27,9 @@ func (c *Config) getSubscriberHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	sadisRequestID := vars["id"]
 
-	log.Infof("Looking for object %s in XOS database", sadisRequestID)
+	log.WithFields(logrus.Fields{
+		"sadisId": sadisRequestID,
+	}).Infof("Looking for object %s in XOS database", sadisRequestID)
 
 	defer r.Body.Close()
 
@@ -112,7 +115,9 @@ func (c *Config) getSubscriberHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	log.Infof("Couldn't find object %s in XOS database", sadisRequestID)
+	log.WithFields(logrus.Fields{
+		"sadisId": sadisRequestID,
+	}).Infof("Couldn't find object %s in XOS database", sadisRequestID)
 
 	http.NotFound(w, r)
 }

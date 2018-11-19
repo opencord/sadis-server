@@ -19,30 +19,34 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 
 	"github.com/gorilla/mux"
 	"github.com/kelseyhightower/envconfig"
+	lkh "github.com/gfremex/logrus-kafka-hook"
 )
 
 const appName = "SADISSERVER"
 
 type Config struct {
-	Port       int    `default:"8000" desc:"port on which to listen for requests"`
-	Xos		   string `default:"127.0.0.1:8181" desc:"connection string with which to connect to XOS"`
-	Username   string `default:"admin@opencord.org" desc:"username with which to connect to XOS"`
-	Password   string `default:"letmein" desc:"password with which to connect to XOS"`
-	LogLevel   string `default:"info" envconfig:"LOG_LEVEL" desc:"detail level for logging"`
-	LogFormat  string `default:"text" envconfig:"LOG_FORMAT" desc:"log output format, text or json"`
+	Port         int    `default:"8000" desc:"port on which to listen for requests"`
+	Xos		     string `default:"127.0.0.1:8181" desc:"connection string with which to connect to XOS"`
+	Username     string `default:"admin@opencord.org" desc:"username with which to connect to XOS"`
+	Password     string `default:"letmein" desc:"password with which to connect to XOS"`
+	LogLevel     string `default:"info" envconfig:"LOG_LEVEL" desc:"detail level for logging"`
+	LogFormat    string `default:"text" envconfig:"LOG_FORMAT" desc:"log output format, text or json"`
+	KafkaBroker  string `default:"" desc:"url of the kafka broker"`
 
 	connect string
 }
 
-var log = logrus.New()
+var logger = logrus.New()
+var log *logrus.Entry
 var appFlags = flag.NewFlagSet("", flag.ContinueOnError)
+var config Config
 
-func main() {
-	config := Config{}
+func init()  {
+	config = Config{}
 	appFlags.Usage = func() {
 		envconfig.Usage(appName, &config)
 	}
@@ -56,35 +60,63 @@ func main() {
 
 	err := envconfig.Process(appName, &config)
 	if err != nil {
-		log.Fatalf("[ERROR] Unable to parse configuration options : %s", err)
+		logger.Fatalf("[ERROR] Unable to parse configuration options : %s", err)
 	}
 
-	switch config.LogFormat {
-	case "json":
-		log.Formatter = &logrus.JSONFormatter{}
-	default:
-		log.Formatter = &logrus.TextFormatter{
-			FullTimestamp: true,
-			ForceColors:   true,
+	if len(config.KafkaBroker) > 0 {
+		logger.Debug("Setting up kafka integration")
+		hook, err := lkh.NewKafkaHook(
+			"kh",
+			[]logrus.Level{logrus.DebugLevel, logrus.InfoLevel, logrus.WarnLevel, logrus.ErrorLevel},
+			&logrus.JSONFormatter{
+				FieldMap: logrus.FieldMap{
+					logrus.FieldKeyTime:  "@timestamp",
+					logrus.FieldKeyLevel: "level",
+					logrus.FieldKeyMsg:   "message",
+				},
+			},
+			[]string{config.KafkaBroker},
+		)
+
+		if err != nil {
+			logger.Error(err)
 		}
+
+		logger.Hooks.Add(hook)
 	}
 
 	level, err := logrus.ParseLevel(config.LogLevel)
 	if err != nil {
 		level = logrus.WarnLevel
 	}
-	log.Level = level
+	logger.Level = level
 
-	log.Infof(`Configuration:
-        PORT:       %d
-        XOS:        %s
-        USERNAME:   %s
-        PASSWORD:   %s
-        LOG_LEVEL:  %s
-        LOG_FORMAT: %s`,
-		config.Port, config.Xos,
-		config.Username, config.Password,
-		config.LogLevel, config.LogFormat)
+	switch config.LogFormat {
+	case "json":
+		logger.Formatter = &logrus.JSONFormatter{}
+	default:
+		logger.Formatter = &logrus.TextFormatter{
+			FullTimestamp: true,
+			ForceColors:   true,
+		}
+	}
+
+	log = logger.WithField("topics", []string{"sadis-server.log"})
+}
+
+func main() {
+
+
+
+	log.WithFields(logrus.Fields{
+		"PORT": config.Port,
+		"XOS": config.Xos,
+		"USERNAME": config.Username,
+		"PASSWORD": config.Password,
+		"LOG_LEVEL": config.LogLevel,
+		"LOG_FORMAT": config.LogFormat,
+		"KAFKA_BROKER": config.KafkaBroker,
+	}).Infof(`Sadis-server started`)
 
 	router := mux.NewRouter()
 	router.HandleFunc("/subscriber/{id}", config.getSubscriberHandler)
