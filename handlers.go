@@ -15,10 +15,11 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/sirupsen/logrus"
 	"net"
 	"net/http"
 	"strconv"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/gorilla/mux"
 )
@@ -56,6 +57,53 @@ func (c *Config) getSubscriberHandler(w http.ResponseWriter, r *http.Request) {
 				CircuitID: sub.CircuitID,
 				RemoteID:  sub.RemoteID,
 			}
+
+			log.Debugf("Fetching bandwidth profiles for subscriber %s", sub.OnuSerialNumber)
+
+			dsBandwidthprofile := bandwidthprofile{}
+			err = c.getOneBandwidthProfileHandler(sub.DownstreamBandwidthProfile, &dsBandwidthprofile)
+			if err != nil {
+				log.Errorf("Cannot fetch downstream bandwidth profile %s for subscriber %s", strconv.Itoa(sub.DownstreamBandwidthProfile), sub.OnuSerialNumber)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			if (bandwidthprofile{}) == dsBandwidthprofile {
+				// it's empty
+				log.WithFields(logrus.Fields{
+					"DownstreamBandwidthProfile": sub.DownstreamBandwidthProfile,
+					"Subscriber":                 sub.OnuSerialNumber,
+					"sadisId":                    sadisRequestID,
+				}).Error("Downstream bandwidth profile not found in XOS")
+				http.Error(w, "Downstream bandwidth profile not found in XOS", http.StatusInternalServerError)
+				return
+			}
+			sadisSubscriber.DownstreamBandwidthProfile = dsBandwidthprofile.Name
+
+			usBandwidthprofile := bandwidthprofile{}
+			err = c.getOneBandwidthProfileHandler(sub.UpstreamBandwidthProfile, &usBandwidthprofile)
+			if err != nil {
+				log.Errorf("Cannot fetch upstream bandwidth profile %s for subscriber %s", strconv.Itoa(sub.UpstreamBandwidthProfile), sub.OnuSerialNumber)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			if (bandwidthprofile{}) == usBandwidthprofile {
+				// it's empty
+				log.WithFields(logrus.Fields{
+					"UpstreamBandwidthProfile": usBandwidthprofile.Name,
+					"Subscriber":               sub.OnuSerialNumber,
+					"sadisId":                  sadisRequestID,
+				}).Error("Upstream bandwidth profile not found in XOS")
+				http.Error(w, "Upstream bandwidth profile not found in XOS", http.StatusInternalServerError)
+				return
+			}
+			sadisSubscriber.UpstreamBandwidthProfile = usBandwidthprofile.Name
+
+			log.WithFields(logrus.Fields{
+				"UpstreamBandwidthProfile":   usBandwidthprofile.Name,
+				"DownstreamBandwidthProfile": dsBandwidthprofile.Name,
+				"Subscriber":                 sub.OnuSerialNumber,
+				"sadisId":                    sadisRequestID,
+			}).Debug("Bandwidth profiles for subscriber")
 
 			json, e := json.Marshal(&sadisSubscriber)
 			if e != nil {
@@ -122,6 +170,63 @@ func (c *Config) getSubscriberHandler(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 
+func (c *Config) getBandwidthProfileHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	sadisRequestID := vars["id"]
+
+	log.WithFields(logrus.Fields{
+		"sadisId": sadisRequestID,
+	}).Infof("Fetching BandwidthProfiles from XOS database")
+	defer r.Body.Close()
+
+	bandwidthprofiles := bandwidthprofiles{}
+
+	err := c.fetch("/xosapi/v1/rcord/bandwidthprofiles", &bandwidthprofiles)
+
+	if err != nil {
+		log.Errorf("Unable to retrieve bandwidth profiles information from XOS: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	for _, profile := range bandwidthprofiles.Profiles {
+		profileID := profile.Name
+		if profileID == sadisRequestID {
+			sadisProfile := sadisBandwidthProfile{
+				ID:  profile.Name,
+				Cir: profile.Cir,
+				Cbs: profile.Cbs,
+				Eir: profile.Eir,
+				Ebs: profile.Ebs,
+				Air: profile.Air,
+			}
+			json, e := json.Marshal(&sadisProfile)
+			if e != nil {
+				log.Errorf("Unable to marshal JSON: %s", e)
+				http.Error(w, e.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Write(json)
+			return
+		}
+	}
+
+	log.WithFields(logrus.Fields{
+		"sadisId": sadisRequestID,
+	}).Infof("Couldn't find object %s in XOS database", sadisRequestID)
+
+	http.NotFound(w, r)
+}
+
+func (c *Config) getOneBandwidthProfileHandler(id int, data interface{}) error {
+	err := c.fetch("/xosapi/v1/rcord/bandwidthprofiles/"+strconv.Itoa(id), &data)
+	if err != nil {
+		log.Errorf("Unable to retrieve bandwidth profile information from XOS: %s", err)
+		return err
+	}
+	return nil
+}
+
 func toInt(value string) int {
 	r, _ := strconv.Atoi(value)
 	return r
@@ -129,6 +234,7 @@ func toInt(value string) int {
 
 func (c *Config) fetch(path string, data interface{}) error {
 	resp, err := http.Get(c.connect + path)
+
 	if err != nil {
 		return err
 	}
@@ -136,5 +242,10 @@ func (c *Config) fetch(path string, data interface{}) error {
 	defer resp.Body.Close()
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(data)
+	log.WithFields(logrus.Fields{
+		"path":   path,
+		"resp":   data,
+		"status": resp.Status,
+	}).Debug("Received data from XOS")
 	return err
 }

@@ -21,21 +21,21 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	lkh "github.com/gfremex/logrus-kafka-hook"
 	"github.com/gorilla/mux"
 	"github.com/kelseyhightower/envconfig"
-	lkh "github.com/gfremex/logrus-kafka-hook"
 )
 
 const appName = "SADISSERVER"
 
 type Config struct {
-	Port         int    `default:"8000" desc:"port on which to listen for requests"`
-	Xos		     string `default:"127.0.0.1:8181" desc:"connection string with which to connect to XOS"`
-	Username     string `default:"admin@opencord.org" desc:"username with which to connect to XOS"`
-	Password     string `default:"letmein" desc:"password with which to connect to XOS"`
-	LogLevel     string `default:"info" envconfig:"LOG_LEVEL" desc:"detail level for logging"`
-	LogFormat    string `default:"text" envconfig:"LOG_FORMAT" desc:"log output format, text or json"`
-	KafkaBroker  string `default:"" desc:"url of the kafka broker"`
+	Port        int    `default:"8000" desc:"port on which to listen for requests"`
+	Xos         string `default:"127.0.0.1:8181" desc:"connection string with which to connect to XOS"`
+	Username    string `default:"admin@opencord.org" desc:"username with which to connect to XOS"`
+	Password    string `default:"letmein" desc:"password with which to connect to XOS"`
+	LogLevel    string `default:"info" envconfig:"LOG_LEVEL" desc:"detail level for logging"`
+	LogFormat   string `default:"text" envconfig:"LOG_FORMAT" desc:"log output format, text or json"`
+	KafkaBroker string `default:"" desc:"url of the kafka broker"`
 
 	connect string
 }
@@ -45,7 +45,7 @@ var log *logrus.Entry
 var appFlags = flag.NewFlagSet("", flag.ContinueOnError)
 var config Config
 
-func init()  {
+func init() {
 	config = Config{}
 	appFlags.Usage = func() {
 		envconfig.Usage(appName, &config)
@@ -106,20 +106,19 @@ func init()  {
 
 func main() {
 
-
-
 	log.WithFields(logrus.Fields{
-		"PORT": config.Port,
-		"XOS": config.Xos,
-		"USERNAME": config.Username,
-		"PASSWORD": config.Password,
-		"LOG_LEVEL": config.LogLevel,
-		"LOG_FORMAT": config.LogFormat,
+		"PORT":         config.Port,
+		"XOS":          config.Xos,
+		"USERNAME":     config.Username,
+		"PASSWORD":     config.Password,
+		"LOG_LEVEL":    config.LogLevel,
+		"LOG_FORMAT":   config.LogFormat,
 		"KAFKA_BROKER": config.KafkaBroker,
 	}).Infof(`Sadis-server started`)
 
 	router := mux.NewRouter()
 	router.HandleFunc("/subscriber/{id}", config.getSubscriberHandler)
+	router.HandleFunc("/bandwidthprofiles/{id}", config.getBandwidthProfileHandler)
 	http.Handle("/", router)
 
 	connectStringFormat := "http://%s:%s@%s"

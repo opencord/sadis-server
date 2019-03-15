@@ -27,28 +27,49 @@ package main
   ONOS SADIS subscriber format
 */
 type sadisSubscriber struct {
-	ID        string `json:"id"`
-	CTag      int16  `json:"cTag"`
-	STag      int16  `json:"sTag"`
-	NasPortID string `json:"nasPortId"`
-	CircuitID string `json:"circuitId"`
-	RemoteID  string `json:"remoteId"`
+	ID                         string `json:"id"`
+	CTag                       int16  `json:"cTag"`
+	STag                       int16  `json:"sTag"`
+	NasPortID                  string `json:"nasPortId"`
+	CircuitID                  string `json:"circuitId"`
+	RemoteID                   string `json:"remoteId"`
+	UpstreamBandwidthProfile   string `json:"upstreamBandwidthProfile"`
+	DownstreamBandwidthProfile string `json:"downstreamBandwidthProfile"`
 }
 
 /*
   XOS RCORD subscriber format
 */
 type subscriber struct {
-	CTag            int16  `json:"c_tag"`
-	STag            int16  `json:"s_tag"`
-	OnuSerialNumber string `json:"onu_device"`
-	NasPortID       string `json:"nas_port_id"`
-	CircuitID       string `json:"circuit_id"`
-	RemoteID        string `json:"remote_id"`
+	ID                         int    `json:"id"`
+	CTag                       int16  `json:"c_tag"`
+	STag                       int16  `json:"s_tag"`
+	OnuSerialNumber            string `json:"onu_device"`
+	NasPortID                  string `json:"nas_port_id"`
+	CircuitID                  string `json:"circuit_id"`
+	RemoteID                   string `json:"remote_id"`
+	UpstreamBandwidthProfile   int    `json:"upstream_bps_id"`
+	DownstreamBandwidthProfile int    `json:"downstream_bps_id"`
 }
 
 type subscribers struct {
 	Subscribers []*subscriber `json:"items"`
+}
+
+/*
+  XOS BandwidthProfile format
+*/
+type bandwidthprofile struct {
+	Name string `json:"name"`
+	Cir  int    `json:"cir"`
+	Cbs  int    `json:"cbs"`
+	Eir  int    `json:"eir"`
+	Ebs  int    `json:"ebs"`
+	Air  int    `json:"air"`
+}
+
+type bandwidthprofiles struct {
+	Profiles []*bandwidthprofile `json:"items"`
 }
 
 /*
@@ -82,4 +103,17 @@ type oltDevice struct {
 
 type oltDevices struct {
 	OltDevices []*oltDevice `json:"items"`
+}
+
+/*
+  ONOS SADIS bandwidth profile format
+*/
+
+type sadisBandwidthProfile struct {
+	ID  string `json:"id"`
+	Cir int    `json:"cir"`
+	Cbs int    `json:"cbs"`
+	Eir int    `json:"eir"`
+	Ebs int    `json:"ebs"`
+	Air int    `json:"air"`
 }
