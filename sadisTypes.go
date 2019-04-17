@@ -35,6 +35,7 @@ type sadisSubscriber struct {
 	RemoteID                   string `json:"remoteId"`
 	UpstreamBandwidthProfile   string `json:"upstreamBandwidthProfile"`
 	DownstreamBandwidthProfile string `json:"downstreamBandwidthProfile"`
+	TechnologyProfileID        int    `json:"technologyProfileId"`
 }
 
 /*

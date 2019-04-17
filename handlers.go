@@ -50,12 +50,13 @@ func (c *Config) getSubscriberHandler(w http.ResponseWriter, r *http.Request) {
 		if sub.OnuSerialNumber == sadisRequestID {
 			log.Infof("Found subscriber with ID %s", sub.OnuSerialNumber)
 			sadisSubscriber := sadisSubscriber{
-				ID:        sub.OnuSerialNumber,
-				CTag:      sub.CTag,
-				STag:      sub.STag,
-				NasPortID: sub.NasPortID,
-				CircuitID: sub.CircuitID,
-				RemoteID:  sub.RemoteID,
+				ID:                   sub.OnuSerialNumber,
+				CTag:                 sub.CTag,
+				STag:                 sub.STag,
+				NasPortID:            sub.NasPortID,
+				CircuitID:            sub.CircuitID,
+				RemoteID:             sub.RemoteID,
+				TechnologyProfileID:  64,
 			}
 
 			log.Debugf("Fetching bandwidth profiles for subscriber %s", sub.OnuSerialNumber)
