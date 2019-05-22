@@ -51,6 +51,7 @@ type subscriber struct {
 	RemoteID                   string `json:"remote_id"`
 	UpstreamBandwidthProfile   int    `json:"upstream_bps_id"`
 	DownstreamBandwidthProfile int    `json:"downstream_bps_id"`
+	TechnologyProfileID        int    `json:"tech_profile_id"`
 }
 
 type subscribers struct {

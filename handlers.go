@@ -56,7 +56,7 @@ func (c *Config) getSubscriberHandler(w http.ResponseWriter, r *http.Request) {
 				NasPortID:            sub.NasPortID,
 				CircuitID:            sub.CircuitID,
 				RemoteID:             sub.RemoteID,
-				TechnologyProfileID:  64,
+				TechnologyProfileID:  sub.TechnologyProfileID,
 			}
 
 			log.Debugf("Fetching bandwidth profiles for subscriber %s", sub.OnuSerialNumber)
