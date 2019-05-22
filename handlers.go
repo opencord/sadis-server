@@ -144,7 +144,7 @@ func (c *Config) getSubscriberHandler(w http.ResponseWriter, r *http.Request) {
 			} else {
 				ipaddr = addr.String()
 			}
-			log.Debugf("ID: %s, Uplink: %s, IPAddress: %s, NasID: %s", devID, toInt(device.Uplink), ipaddr, device.NasID)
+			log.Debugf("ID: %s, Uplink: %d, IPAddress: %s, NasID: %s", devID, toInt(device.Uplink), ipaddr, device.NasID)
 			sadisDevice := sadisDevice{
 				ID:         devID,
 				Uplink:     toInt(device.Uplink),

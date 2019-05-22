@@ -12,17 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-REGISTRY          ?=
-REPOSITORY        ?=
-DOCKER_BUILD_ARGS ?=
-TAG               ?= $(shell cat ${MAKEFILE_DIR}/VERSION)
-IMAGENAME         := ${REGISTRY}${REPOSITORY}sadis-server:${TAG}
-SHELL             := /bin/bash
+# Variables
+VERSION                  ?= $(shell cat ./VERSION)
+SERVICE_NAME             ?= sadis-server
 
-all: build push
+## Docker related
+DOCKER_REGISTRY          ?=
+DOCKER_REPOSITORY        ?=
+DOCKER_BUILD_ARGS        ?=
+DOCKER_TAG               ?= ${VERSION}
+DOCKER_IMAGENAME         := ${DOCKER_REGISTRY}${DOCKER_REPOSITORY}${SERVICE_NAME}:${DOCKER_TAG}
 
-build:
-	docker build $(DOCKER_BUILD_ARGS) -t ${IMAGENAME} -f Dockerfile .
+all: test
 
-push:
-	docker push ${IMAGENAME}
+docker-build:
+	docker build $(DOCKER_BUILD_ARGS) \
+	-t ${DOCKER_IMAGENAME} \
+	--build-arg org_label_schema_version="${VERSION}" \
+	--build-arg org_label_schema_vcs_url="${DOCKER_LABEL_VCS_URL}" \
+	--build-arg org_label_schema_vcs_ref="${DOCKER_LABEL_VCS_REF}" \
+	--build-arg org_label_schema_build_date="${DOCKER_LABEL_BUILD_DATE}" \
+	--build-arg org_opencord_vcs_commit_date="${DOCKER_LABEL_COMMIT_DATE}" \
+	-f Dockerfile .
+
+docker-push:
+	docker push ${DOCKER_IMAGENAME}
+
+test:
+	go test -v ./...

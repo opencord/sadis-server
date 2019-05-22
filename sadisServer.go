@@ -33,7 +33,7 @@ type Config struct {
 	Xos         string `default:"127.0.0.1:8181" desc:"connection string with which to connect to XOS"`
 	Username    string `default:"admin@opencord.org" desc:"username with which to connect to XOS"`
 	Password    string `default:"letmein" desc:"password with which to connect to XOS"`
-	LogLevel    string `default:"info" envconfig:"LOG_LEVEL" desc:"detail level for logging"`
+	LogLevel    string `default:"debug" envconfig:"LOG_LEVEL" desc:"detail level for logging"`
 	LogFormat   string `default:"text" envconfig:"LOG_FORMAT" desc:"log output format, text or json"`
 	KafkaBroker string `default:"" desc:"url of the kafka broker"`
 
