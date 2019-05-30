@@ -22,7 +22,8 @@ WORKDIR /go
 ADD . /go/src/gerrit.opencord.org/sadis-server
 RUN CGO_ENABLED=0 GOOS=linux go build -o /build/entry-point gerrit.opencord.org/sadis-server
 
-FROM alpine:3.5
+# The amd64 and arm64 are supported by alpine:3.6.
+FROM alpine:3.9
 MAINTAINER Open Networking Foundation <info@opennetworking.org>
 
 COPY --from=builder /build/entry-point /service/entry-point
