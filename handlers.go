@@ -50,69 +50,107 @@ func (c *Config) getSubscriberHandler(w http.ResponseWriter, r *http.Request) {
 		if sub.OnuSerialNumber == sadisRequestID {
 			log.Infof("Found subscriber with ID %s", sub.OnuSerialNumber)
 			sadisSubscriber := sadisSubscriber{
-				ID:                   sub.OnuSerialNumber,
-				CTag:                 sub.CTag,
-				STag:                 sub.STag,
-				NasPortID:            sub.NasPortID,
-				CircuitID:            sub.CircuitID,
-				RemoteID:             sub.RemoteID,
-				TechnologyProfileID:  sub.TechnologyProfileID,
+				ID:        sub.OnuSerialNumber,
+				NasPortID: sub.NasPortID,
+				CircuitID: sub.CircuitID,
+				RemoteID:  sub.RemoteID,
 			}
 
-			log.Debugf("Fetching bandwidth profiles for subscriber %s", sub.OnuSerialNumber)
+			log.Debugf("Fetching UNI Tag list for subscriber %s", sub.OnuSerialNumber)
 
-			dsBandwidthprofile := bandwidthprofile{}
-			err = c.getOneBandwidthProfileHandler(sub.DownstreamBandwidthProfile, &dsBandwidthprofile)
-			if err != nil {
-				log.Errorf("Cannot fetch downstream bandwidth profile %s for subscriber %s", strconv.Itoa(sub.DownstreamBandwidthProfile), sub.OnuSerialNumber)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			if (bandwidthprofile{}) == dsBandwidthprofile {
-				// it's empty
+			unitaglist := sadisUnitaginfolist{}
+			for _, unitagid := range sub.UniTagListId {
+				utinfo := unitaginfo{}
+				err = c.getOneUniTagInfo(unitagid, &utinfo)
+				if err != nil {
+					log.Errorf("Cannot fetch UNI tag information%s for subscriber %s", strconv.Itoa(unitagid), sub.OnuSerialNumber)
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				if (unitaginfo{}) == utinfo {
+					// it's empty
+					log.WithFields(logrus.Fields{
+						"UniTagInfoId": unitagid,
+						"Subscriber":   sub.OnuSerialNumber,
+						"sadisId":      sadisRequestID,
+					}).Error("UNI Tag info not found in XOS")
+					http.Error(w, "UNI Tag info not found in XOS", http.StatusInternalServerError)
+					return
+				}
+				sadisUnitaginfo := sadisUnitaginfo{
+					UniTagMatch:          utinfo.UniTagMatch,
+					PonCTag:              utinfo.PonCTag,
+					PonSTag:              utinfo.PonSTag,
+					UsPonCTagPriority:    utinfo.UsPonCTagPriority,
+					UsPonSTagPriority:    utinfo.UsPonSTagPriority,
+					DsPonCTagPriority:    utinfo.DsPonCTagPriority,
+					DsPonSTagPriority:    utinfo.DsPonSTagPriority,
+					TechnologyProfileID:  utinfo.TechnologyProfileID,
+					ServiceName:          utinfo.ServiceName,
+					EnableMacLearning:    utinfo.EnableMacLearning,
+					ConfiguredMacAddress: utinfo.ConfiguredMacAddress,
+					IsDhcpRequired:       utinfo.IsDhcpRequired,
+					IsIgmpRequired:       utinfo.IsIgmpRequired,
+				}
+
+				log.Debugf("Fetching bandwidth profiles for subscriber %s and unitagid: %s", sub.OnuSerialNumber, strconv.Itoa(utinfo.ID))
+
+				dsBandwidthprofile := bandwidthprofile{}
+				err = c.getOneBandwidthProfileHandler(utinfo.DownstreamBandwidthProfile, &dsBandwidthprofile)
+				if err != nil {
+					log.Errorf("Cannot fetch downstream bandwidth profile %s for subscriber %s", strconv.Itoa(utinfo.DownstreamBandwidthProfile), sub.OnuSerialNumber)
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				if (bandwidthprofile{}) == dsBandwidthprofile {
+					// it's empty
+					log.WithFields(logrus.Fields{
+						"DownstreamBandwidthProfile": utinfo.DownstreamBandwidthProfile,
+						"Subscriber":                 sub.OnuSerialNumber,
+						"sadisId":                    sadisRequestID,
+					}).Error("Downstream bandwidth profile not found in XOS")
+					http.Error(w, "Downstream bandwidth profile not found in XOS", http.StatusInternalServerError)
+					return
+				}
+				sadisUnitaginfo.DownstreamBandwidthProfile = dsBandwidthprofile.Name
+
+				usBandwidthprofile := bandwidthprofile{}
+				err = c.getOneBandwidthProfileHandler(utinfo.UpstreamBandwidthProfile, &usBandwidthprofile)
+				if err != nil {
+					log.Errorf("Cannot fetch upstream bandwidth profile %s for subscriber %s", strconv.Itoa(utinfo.UpstreamBandwidthProfile), sub.OnuSerialNumber)
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				if (bandwidthprofile{}) == usBandwidthprofile {
+					// it's empty
+					log.WithFields(logrus.Fields{
+						"UpstreamBandwidthProfile": utinfo.UpstreamBandwidthProfile,
+						"Subscriber":               sub.OnuSerialNumber,
+						"sadisId":                  sadisRequestID,
+					}).Error("Upstream bandwidth profile not found in XOS")
+					http.Error(w, "Upstream bandwidth profile not found in XOS", http.StatusInternalServerError)
+					return
+				}
+				sadisUnitaginfo.UpstreamBandwidthProfile = usBandwidthprofile.Name
+
 				log.WithFields(logrus.Fields{
-					"DownstreamBandwidthProfile": sub.DownstreamBandwidthProfile,
 					"Subscriber":                 sub.OnuSerialNumber,
-					"sadisId":                    sadisRequestID,
-				}).Error("Downstream bandwidth profile not found in XOS")
-				http.Error(w, "Downstream bandwidth profile not found in XOS", http.StatusInternalServerError)
-				return
+					"UniTagInfo":                 utinfo.ID,
+					"UpstreamBandwidthProfile":   usBandwidthprofile.Name,
+					"DownstreamBandwidthProfile": dsBandwidthprofile.Name,
+					"sadisId": sadisRequestID,
+				}).Debug("Bandwidth profiles for subscriber/unitaginfo")
+				unitaglist.SadisUniTagList = append(unitaglist.SadisUniTagList, &sadisUnitaginfo)
 			}
-			sadisSubscriber.DownstreamBandwidthProfile = dsBandwidthprofile.Name
+			sadisSubscriber.UniTagList = unitaglist.SadisUniTagList
 
-			usBandwidthprofile := bandwidthprofile{}
-			err = c.getOneBandwidthProfileHandler(sub.UpstreamBandwidthProfile, &usBandwidthprofile)
-			if err != nil {
-				log.Errorf("Cannot fetch upstream bandwidth profile %s for subscriber %s", strconv.Itoa(sub.UpstreamBandwidthProfile), sub.OnuSerialNumber)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			if (bandwidthprofile{}) == usBandwidthprofile {
-				// it's empty
-				log.WithFields(logrus.Fields{
-					"UpstreamBandwidthProfile": usBandwidthprofile.Name,
-					"Subscriber":               sub.OnuSerialNumber,
-					"sadisId":                  sadisRequestID,
-				}).Error("Upstream bandwidth profile not found in XOS")
-				http.Error(w, "Upstream bandwidth profile not found in XOS", http.StatusInternalServerError)
-				return
-			}
-			sadisSubscriber.UpstreamBandwidthProfile = usBandwidthprofile.Name
-
-			log.WithFields(logrus.Fields{
-				"UpstreamBandwidthProfile":   usBandwidthprofile.Name,
-				"DownstreamBandwidthProfile": dsBandwidthprofile.Name,
-				"Subscriber":                 sub.OnuSerialNumber,
-				"sadisId":                    sadisRequestID,
-			}).Debug("Bandwidth profiles for subscriber")
-
-			json, e := json.Marshal(&sadisSubscriber)
+			sadisjson, e := json.Marshal(&sadisSubscriber)
 			if e != nil {
 				log.Errorf("Unable to marshal JSON: %s", e)
 				http.Error(w, e.Error(), http.StatusInternalServerError)
 				return
 			}
-			w.Write(json)
+			w.Write(sadisjson)
 			return
 		}
 	}
@@ -223,6 +261,15 @@ func (c *Config) getOneBandwidthProfileHandler(id int, data interface{}) error {
 	err := c.fetch("/xosapi/v1/rcord/bandwidthprofiles/"+strconv.Itoa(id), &data)
 	if err != nil {
 		log.Errorf("Unable to retrieve bandwidth profile information from XOS: %s", err)
+		return err
+	}
+	return nil
+}
+
+func (c *Config) getOneUniTagInfo(id int, data interface{}) error {
+	err := c.fetch("/xosapi/v1/rcord/rcordunitaginformations/"+strconv.Itoa(id), &data)
+	if err != nil {
+		log.Errorf("Unable to retrieve UNI Tag information from XOS: %s", err)
 		return err
 	}
 	return nil
